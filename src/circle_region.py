@@ -4,7 +4,7 @@ import matplotlib.patches as mpatches
 
 class CircleRegionManager():
     def __init__(self):
-        self.regions = [CircleRegion(0.5, 0.5, 0.1), CircleRegion(0.2, 0.3, 0.05, 1, 4)]
+        self.regions = [CircleRegion(self, 0.5, 0.5, 0.1, 0, 4), CircleRegion(self, 0.5, 0.5, 0.1, 4, 7)]
         self.set_index(0)
         self.p = None
 
@@ -16,14 +16,45 @@ class CircleRegionManager():
 
         if self.p is not None:
             self.p.remove()
-        self.p = PatchCollection(patches, alpha=0.4, match_original=True)
-        ax.add_collection(self.p)
+            self.p = None
+        if len(patches)>0:
+            self.p = PatchCollection(patches, alpha=0.4, match_original=True)
+            ax.add_collection(self.p)
 
     def filter_list(self):
         """
         Return the list of regions that are active at this time period
         """
+        # Update indices
+        for i in range(len(self.regions)):
+            self.regions[i].index = i
+        # Return
         return [r for r in self.regions if r.start<=self.index and (r.end is None or r.end>self.index)]
+
+    def get_next_region(self, index):
+        """
+        If the next region is a direct continuation of the current one
+        return it. Otherwise, return None
+        """
+        if index < len(self.regions):
+            r1 = self.regions[index]
+            r2 = self.regions[index+1]
+            if r1.x[1] == r2.x[0] and r1.y[1] == r2.y[0] and r1.r[1] == r2.r[0] and r1.end == r2.start:
+                return index+1
+        return None
+
+    def get_prev_region(self, index):
+        """
+        If the prev region is a direct continuation of the current one
+        return it. Otherwise, return None
+        """
+        if index > 0:
+            r1 = self.regions[index-1]
+            r2 = self.regions[index]
+            if r1.x[1] == r2.x[0] and r1.y[1] == r2.y[0] and r1.r[1] == r2.r[0] and r1.end == r2.start:
+                return index-1
+        return None
+
 
     def set_index(self, i):
         self.index = i
@@ -36,7 +67,7 @@ class CircleRegionManager():
         return None
 
     def create(self, x, y, r=0.1):
-        self.regions.append(CircleRegion(x,y,r,self.index))
+        self.regions.append(CircleRegion(self, x,y,r,self.index))
         self.filter_list()
 
     def delete(self, current_offset):
@@ -54,11 +85,17 @@ class CircleRegionManager():
                 colors.append('b')
         return np.array(colors)
 
+    def insert(self, i, x, y, r, start=0, end=None):
+        self.regions.insert(i, CircleRegion(self, x,y,r, start, end))
+        self.current = self.filter_list()
+        return self.regions[i]
+
 class CircleRegion():
 
-    def __init__(self, x,y, r, start=0, end=None):
+    def __init__(self, manager, x, y, r, start=0, end=None):
         self.start = start
         self.end = end
+        self.manager = manager
         
         self.x = np.array([x,x])
         self.y = np.array([y,y])
@@ -90,12 +127,36 @@ class CircleRegion():
         return c
 
     def move(self, x, y, index):
-        if index == self.start:  # start point
-            self.x[0] = x
-            self.y[0] = y
-        elif self.end is not None and index == self.end -1:  # end
-            self.x[1] = x
-            self.y[1] = y
-        else:
-            print "TODO!"
+        if index == self.start:  # start of region
+            prev_region = self.manager.get_prev_region(self.index)
+            if prev_region is None:
+                self.x[0] = x
+                self.y[0] = y
+            else:  # Also move previous point
+                self.manager.regions[prev_region].x[1] = self.x[0] = x
+                self.manager.regions[prev_region].y[1] = self.y[0] = y
+        elif self.end is not None and index == self.end -1:  # end of region
+            next_region = self.manager.get_next_region(self.index)
+            if next_region is None:
+                self.x[1] = x
+                self.y[1] = y
+            else:  # Also move previous point
+                self.manager.regions[next_region].x[0] = self.x[1] = x
+                self.manager.regions[next_region].y[0] = self.y[1] = y
+        else: # In the middle of a region. split here!
+            print "Splitting series!", index, self.start, self.end
+            cx,cy,cr = self.xyr(index)  # Get values
+            # Insert new region after this one
+            new_region = self.manager.insert(self.index+1, cx,cy,cr, index+1, self.end)
+            # Update new region end x,y,r, by copying existing values over
+            new_region.x[1] = self.x[1]
+            new_region.y[1] = self.y[1]
+            new_region.r[1] = self.r[1]
+            # Update this region end to intermediate position
+            self.x[1] = cx
+            self.y[1] = cy
+            self.r[1] = cr
+            self.end = index+1  # This segment ends last frame
+            print self, new_region
+            
             
