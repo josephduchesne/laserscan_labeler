@@ -36,7 +36,7 @@ class CircleRegionManager():
         If the next region is a direct continuation of the current one
         return it. Otherwise, return None
         """
-        if index < len(self.regions):
+        if index < len(self.regions)-1:
             r1 = self.regions[index]
             r2 = self.regions[index+1]
             if r1.x[1] == r2.x[0] and r1.y[1] == r2.y[0] and r1.r[1] == r2.r[0] and r1.end == r2.start:
@@ -127,6 +127,13 @@ class CircleRegion():
         return c
 
     def move(self, x, y, index):
+        """
+        This function's a bit of a mess
+        It operates in 3 modes:
+        - Move start (and end of previous segment if "connected")
+        - Move end (and beginning of next segment if "connected")
+        - Move middle (splitting the current region into two new regions)
+        """
         if index == self.start:  # start of region
             prev_region = self.manager.get_prev_region(self.index)
             if prev_region is None:
@@ -143,6 +150,44 @@ class CircleRegion():
             else:  # Also move previous point
                 self.manager.regions[next_region].x[0] = self.x[1] = x
                 self.manager.regions[next_region].y[0] = self.y[1] = y
+        else: # In the middle of a region. split here!
+            print "Splitting series!", index, self.start, self.end
+            cx,cy,cr = self.xyr(index)  # Get values
+            # Insert new region after this one
+            new_region = self.manager.insert(self.index+1, cx,cy,cr, index+1, self.end)
+            # Update new region end x,y,r, by copying existing values over
+            new_region.x[1] = self.x[1]
+            new_region.y[1] = self.y[1]
+            new_region.r[1] = self.r[1]
+            # Update this region end to intermediate position
+            self.x[1] = cx
+            self.y[1] = cy
+            self.r[1] = cr
+            self.end = index+1  # This segment ends last frame
+            print self, new_region
+
+    def resize(self, delta, index):
+        """
+        This function's a bit of a mess like the previous one
+        It operates in 3 modes:
+        - Resize start (and end of previous segment if "connected")
+        - Resize end (and beginning of next segment if "connected")
+        - Resize middle (splitting the current region into two new regions)
+        """
+        if index == self.start:  # start of region
+            prev_region = self.manager.get_prev_region(self.index)
+            r = max(abs(delta), self.r[0] + delta)
+            if prev_region is None:
+                self.r[0] = r
+            else:  # Also move previous point
+                self.manager.regions[prev_region].r[1] = self.r[0] = r
+        elif self.end is not None and index == self.end -1:  # end of region
+            next_region = self.manager.get_next_region(self.index)
+            r = max(abs(delta), self.r[1] + delta)
+            if next_region is None:
+                self.r[1] = r
+            else:  # Also move previous point
+                self.manager.regions[next_region].r[0] = self.r[1] = r
         else: # In the middle of a region. split here!
             print "Splitting series!", index, self.start, self.end
             cx,cy,cr = self.xyr(index)  # Get values

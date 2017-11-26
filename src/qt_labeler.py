@@ -52,6 +52,18 @@ class AppForm(QMainWindow):
             self.circles.create(event.xdata, event.ydata)
         self.on_draw()
 
+    def scroll(self, event):
+        
+        delta = 0.1/self.data.range_max
+        if event.button == "down":
+            delta = -delta  # invert
+        print delta
+        target = self.circles.get_patch_index(event.xdata, event.ydata)
+        if target is not None:
+            index = self.spinbox.value()
+            self.circles.current[target].resize(delta, index)
+        self.on_draw()
+
     def motion(self, event):
         if self.dragging is not None:
             index = self.spinbox.value()
@@ -169,6 +181,7 @@ class AppForm(QMainWindow):
         self.canvas.mpl_connect('button_press_event', self.press)
         self.canvas.mpl_connect('motion_notify_event', self.motion)
         self.canvas.mpl_connect('button_release_event', self.release)
+        self.canvas.mpl_connect('scroll_event', self.scroll)
         
         # GUI controls
         # 
