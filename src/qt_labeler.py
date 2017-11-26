@@ -28,10 +28,63 @@ class AppForm(QMainWindow):
         self.circles = CircleRegionManager()
 
         self.data = data
+        self.create_menu()
         self.create_main_frame()
         self.setChildrenFocusPolicy(Qt.NoFocus)
 
         self.on_draw()
+
+    def create_menu(self):        
+        self.file_menu = self.menuBar().addMenu("&File")
+        
+        save_file_action = self.create_action("&Save",
+            shortcut="Ctrl+S", slot=self.save, 
+            tip="Save a label file")
+        load_file_action = self.create_action("&Open",
+            shortcut="Ctrl+O", slot=self.open, 
+            tip="Open a label file")
+        export_action = self.create_action("&Export",
+            shortcut="Ctrl+E", slot=self.export, 
+            tip="Export labeled data")
+        quit_action = self.create_action("&Quit", slot=self.close, 
+            shortcut="Ctrl+Q", tip="Close the application")
+        
+        self.add_actions(self.file_menu, 
+            (load_file_action, save_file_action, None, export_action, None, quit_action))
+
+    def save(self):
+        print "Save!"
+
+    def open(self):
+        print "Save!"
+
+    def export(self):
+        print "export!"
+
+    def add_actions(self, target, actions):
+        for action in actions:
+            if action is None:
+                target.addSeparator()
+            else:
+                target.addAction(action)
+
+    def create_action(  self, text, slot=None, shortcut=None, 
+                        icon=None, tip=None, checkable=False, 
+                        signal="triggered()"):
+        action = QAction(text, self)
+        if icon is not None:
+            action.setIcon(QIcon(":/%s.png" % icon))
+        if shortcut is not None:
+            action.setShortcut(shortcut)
+        if tip is not None:
+            action.setToolTip(tip)
+            action.setStatusTip(tip)
+        if slot is not None:
+            self.connect(action, SIGNAL(signal), slot)
+        if checkable:
+            action.setCheckable(True)
+        return action
+
 
     def press(self, event):
         print event, event.inaxes
