@@ -1,10 +1,11 @@
 import numpy as np
 from matplotlib.collections import PatchCollection
 import matplotlib.patches as mpatches
+import pickle
 
 class CircleRegionManager():
     def __init__(self):
-        self.regions = [CircleRegion(self, 0.5, 0.5, 0.1, 0, 4), CircleRegion(self, 0.5, 0.5, 0.1, 4, 7)]
+        self.regions = [CircleRegion(self, 0.5, 0.5, 0.1, 0, None)]
         self.set_index(0)
         self.p = None
 
@@ -14,12 +15,15 @@ class CircleRegionManager():
         for i in range(len(self.current)):
             patches.append(self.current[i].render(self.index))
 
-        if self.p is not None:
-            self.p.remove()
-            self.p = None
+        self.cleanup()
         if len(patches)>0:
             self.p = PatchCollection(patches, alpha=0.4, match_original=True)
             ax.add_collection(self.p)
+
+    def cleanup(self):
+        if self.p is not None:
+            self.p.remove()
+            self.p = None
 
     def filter_list(self):
         """
@@ -90,9 +94,23 @@ class CircleRegionManager():
         self.current = self.filter_list()
         return self.regions[i]
 
+    def __getstate__(self):
+        return [x.get_data() for x in self.regions]
+
+    def __setstate__(self, state):
+        self.regions = []
+        for i in  range(len(state)):
+            r = CircleRegion(self)
+            r.set_data(state[i])
+            self.regions.append(r)
+
+        self.p = None
+        self.set_index(0)
+        self.filter_list()
+
 class CircleRegion():
 
-    def __init__(self, manager, x, y, r, start=0, end=None):
+    def __init__(self, manager, x=0, y=0, r=0, start=0, end=None):
         self.start = start
         self.end = end
         self.manager = manager
@@ -100,6 +118,12 @@ class CircleRegion():
         self.x = np.array([x,x])
         self.y = np.array([y,y])
         self.r = np.array([r,r])
+
+    def get_data(self):
+        return (self.start, self.end, self.x, self.y, self.r)
+
+    def set_data(self, data):
+        self.start, self.end, self.x, self.y, self.r = data
 
     def interp(self, frac, a, b):
         return (1-frac)*a + frac*b

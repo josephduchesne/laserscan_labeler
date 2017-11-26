@@ -13,6 +13,8 @@ from bag_loader import BagLoader
 from circle_region import *
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+import pickle
+import gzip
 
 # Handle ctrl-c
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -27,6 +29,7 @@ class AppForm(QMainWindow):
         self.play_timer = None
         self.circles = CircleRegionManager()
 
+        self.path = None  # Save file path
         self.data = data
         self.create_menu()
         self.create_main_frame()
@@ -40,7 +43,10 @@ class AppForm(QMainWindow):
         save_file_action = self.create_action("&Save",
             shortcut="Ctrl+S", slot=self.save, 
             tip="Save a label file")
-        load_file_action = self.create_action("&Open",
+        save_as_action = self.create_action("&Save As...",
+            shortcut="Ctrl+Shift+S", slot=self.save, 
+            tip="Save a label file to another path")
+        load_file_action = self.create_action("&Open...",
             shortcut="Ctrl+O", slot=self.open, 
             tip="Open a label file")
         export_action = self.create_action("&Export",
@@ -50,13 +56,46 @@ class AppForm(QMainWindow):
             shortcut="Ctrl+Q", tip="Close the application")
         
         self.add_actions(self.file_menu, 
-            (load_file_action, save_file_action, None, export_action, None, quit_action))
+            (load_file_action, None, save_file_action, save_as_action, None, export_action, None, quit_action))
 
     def save(self):
         print "Save!"
+        if self.path is None:
+            self.save_as()
+        else:
+            self.data.save(self.path)
+
+    def save_as(self):
+        print "Save as!"
+        file_choices = "LSL (*.lsl)|*.lsl"
+        path = unicode(QFileDialog.getSaveFileName(self, 
+                        'Save file', '', 
+                        file_choices))
+        if not path.endswith(".lsl"):
+            path = path + ".lsl"
+        self.path = path
+        self.save_file(path)
+        print path
+
+    def save_file(self, path):
+        with gzip.open(path, 'wb') as f:
+            pickle.dump([path, self.data, self.circles], f)
 
     def open(self):
-        print "Save!"
+        print "Open!"
+        file_choices = "LSL or BAG (*.lsl *.bag);; LSL (*.lsl);; BAG (*.bag)"
+        path = unicode(QFileDialog.getOpenFileName(self, 
+                        'Open bag or lsl file', '', file_choices))
+        if path.endswith(".lsl"):
+            with gzip.open(path, 'rb') as f:
+                self.circles.cleanup()
+                path, self.data, self.circles = pickle.load(f)
+                self.spinbox.setValue(0)
+                self.spinbox.setMaximum(len(self.data.data)-1)
+                self.on_draw()
+        else: 
+            print "TODO: Bag loading"
+        print path
 
     def export(self):
         print "export!"
