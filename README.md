@@ -33,7 +33,7 @@ Then open a bag file containing laser scans.
 - Press space to play/pause the data
 
 ## Output format
-The output is in the form of a matlab/octave/scipy.io compatible mat file. To load it in python use (scipy.io.loadmat[https://docs.scipy.org/doc/scipy/reference/tutorial/io.html].
+The output is in the form of a matlab/octave/scipy.io compatible mat file. To load it in python use (scipy.io.loadmat)[https://docs.scipy.org/doc/scipy/reference/tutorial/io.html].
 
 Entries:
 N=number of scans, C=number of returns per scan
