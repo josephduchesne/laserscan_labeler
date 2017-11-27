@@ -4,8 +4,21 @@ import math
 
 class BagLoader():
 
-    def __init__(self, bag_path, topic_name):
+    def __init__(self, bag_path, topic_name=None):
         bag = rosbag.Bag(bag_path)
+
+        if topic_name is None:  # Load the first topic of type sensor_msgs/LaserScan
+            types = bag.get_type_and_topic_info()
+            print types
+            print 
+            for i in types.topics:
+                print "i",i
+                if types.topics[i].msg_type == "sensor_msgs/LaserScan":
+                    topic_name = i
+                    break  # Found the first laserscan topic
+        if topic_name is None:
+            print "No laser scan message found!"
+            exit()
 
         self.data = []
         self.data_all = []

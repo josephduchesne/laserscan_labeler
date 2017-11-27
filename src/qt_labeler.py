@@ -21,7 +21,7 @@ import scipy.io as sio
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 class AppForm(QMainWindow):
-    def __init__(self, data):
+    def __init__(self):
         QMainWindow.__init__(self, None)
         self.setWindowTitle('LaserScan Labeler')
 
@@ -31,7 +31,7 @@ class AppForm(QMainWindow):
         self.circles = CircleRegionManager()
 
         self.path = None  # Save file path
-        self.data = data
+        self.data = None
         self.create_menu()
         self.create_main_frame()
         self.setChildrenFocusPolicy(Qt.NoFocus)
@@ -87,17 +87,30 @@ class AppForm(QMainWindow):
         file_choices = "LSL or BAG (*.lsl *.bag);; LSL (*.lsl);; BAG (*.bag)"
         path = unicode(QFileDialog.getOpenFileName(self, 
                         'Open bag or lsl file', '', file_choices))
+        
         if path.endswith(".lsl"):
             self.path = path
             with gzip.open(path, 'rb') as f:
                 self.circles.cleanup()
                 path, self.data, self.circles = pickle.load(f)
-                self.spinbox.setValue(0)
-                self.spinbox.setMaximum(len(self.data.data)-1)
-                self.on_draw()
         else: 
-            print "TODO: Bag loading"
-        print path
+            self.data = BagLoader(path, None)
+            self.circles.cleanup()
+            self.circles = CircleRegionManager()
+            
+
+        # Set the UI elements that depend on data or need resetting
+        self.spinbox.setValue(0)
+        self.spinbox.setMaximum(len(self.data.data)-1)
+        self.ax_p.set_rmax(self.data.range_max)
+        self.ax_p.set_rticks(np.arange(0,self.data.range_max+1, 1.0))  # less radial ticks
+
+        # Open window
+        self.show()
+
+        # Re-render everything
+        self.on_draw()
+
 
     def export(self):
         """ Export labeled data as a mat file
@@ -200,6 +213,10 @@ class AppForm(QMainWindow):
     def on_draw(self):
         """ Redraws the figure
         """
+
+        if self.data is None:  # Don't get ahead of ourselves
+            return
+
         index = self.spinbox.value()
         self.circles.set_index(index)
         # Filter out max range points of "no return"
@@ -279,7 +296,7 @@ class AppForm(QMainWindow):
 
 
         # Set up the polar polot
-        self.ax_p.set_rlabel_position(-22.5)  # get radial labels away from plotted line
+        self.ax_p.set_rlabel_position(0)  # get radial labels away from plotted line
         self.ax_p.grid(True)
         self.ax_p.autoscale(False)
 
@@ -287,9 +304,7 @@ class AppForm(QMainWindow):
         self.circles.render(self.ax_c)
 
         # Render initial values
-        self.lines, = self.ax_p.plot(self.data.theta, self.data.data[0],'r-')
-        self.ax_p.set_rmax(self.data.range_max)
-        self.ax_p.set_rticks(np.arange(0,self.data.range_max+1, 1.0))  # less radial ticks
+        self.lines, = self.ax_p.plot([0], [0],'r-')
         
         # Bind the 'pick' event for clicking on one of the bars
         #
@@ -313,7 +328,7 @@ class AppForm(QMainWindow):
         
         spinbox_label = QLabel('Scan #')
         self.spinbox = QSpinBox()
-        self.spinbox.setRange(0, self.data.length-1)
+        self.spinbox.setRange(0, 0)
         self.spinbox.setValue(0)
         self.spinbox.valueChanged.connect(self.valueChanged)
         self.spinbox.setFocusPolicy(Qt.NoFocus)
@@ -338,14 +353,8 @@ class AppForm(QMainWindow):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print "Invalid argument count!"
-        print "Usage\n\t%s BAGFILE TOPIC\n\t%s foo.bag /scan" % (sys.argv[0], sys.argv[0])
-        exit()
-    data = BagLoader(sys.argv[1], sys.argv[2])
-
     app = QApplication(sys.argv)
-    form = AppForm(data)
+    form = AppForm()
     form.show()
     app.exec_()
 
