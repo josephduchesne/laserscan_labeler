@@ -15,6 +15,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import pickle
 import gzip
+import scipy.io as sio
 
 # Handle ctrl-c
 signal.signal(signal.SIGINT, signal.SIG_DFL)
@@ -63,7 +64,7 @@ class AppForm(QMainWindow):
         if self.path is None:
             self.save_as()
         else:
-            self.data.save(self.path)
+            self.save_file(self.path)
 
     def save_as(self):
         print "Save as!"
@@ -87,6 +88,7 @@ class AppForm(QMainWindow):
         path = unicode(QFileDialog.getOpenFileName(self, 
                         'Open bag or lsl file', '', file_choices))
         if path.endswith(".lsl"):
+            self.path = path
             with gzip.open(path, 'rb') as f:
                 self.circles.cleanup()
                 path, self.data, self.circles = pickle.load(f)
@@ -98,7 +100,29 @@ class AppForm(QMainWindow):
         print path
 
     def export(self):
-        print "export!"
+        """ Export labeled data as a mat file
+        """
+        print "export start"
+
+        # Get the save path
+        file_choices = "mat (*.mat)"
+        path = unicode(QFileDialog.getSaveFileName(self, 
+                        'Export mat', '', 
+                        file_choices))
+        if not path.endswith(".mat"):
+            path = path + ".mat"
+
+        # Get all data into a dict
+        data = {'range_max': self.data.range_max, 'theta': self.data.theta}
+        data['scans'] = self.data.data
+        data['classes'] = []
+        for i in range(len(self.data.data)):
+            data['classes'].append(self.circles.get_classes(self.data, i))
+
+        # Save data dict
+        sio.savemat(path, data)
+        print "export done"
+        
 
     def add_actions(self, target, actions):
         for action in actions:

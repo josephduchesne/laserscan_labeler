@@ -89,6 +89,16 @@ class CircleRegionManager():
                 colors.append('b')
         return np.array(colors)
 
+    def get_classes(self, data, index):
+        cartesian = data.get_cartesian(index)
+        classes = []
+        for i in range(len(cartesian)):
+            if self.get_patch_index(*cartesian[i]) is None:
+                classes.append(0)
+            else:
+                classes.append(1)
+        return np.array(classes)
+
     def insert(self, i, x, y, r, start=0, end=None):
         self.regions.insert(i, CircleRegion(self, x,y,r, start, end))
         self.current = self.filter_list()
@@ -114,6 +124,7 @@ class CircleRegion():
         self.start = start
         self.end = end
         self.manager = manager
+        self.type = 1
         
         self.x = np.array([x,x])
         self.y = np.array([y,y])
