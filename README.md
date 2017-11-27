@@ -15,8 +15,8 @@ Then open a bag file containing laser scans.
 ### Marking regions
 - Click empty space to create a new label region
 - Click and drag a region to move it
- - Clicking a region start or end moves the start/end to the new location
- - Clicking a region middle (blue or green) split the region at the current frame
+  - Clicking a region start or end moves the start/end to the new location
+  - Clicking a region middle (blue or green) split the region at the current frame
 - Using the scroll wheel over a region enlarges or shrinks the region radius
 - Middle clicking a region deletes the end of the region (making it extend to the end of the data)
 - Right clicking a region deletes it (moving the end to the previous frame)
