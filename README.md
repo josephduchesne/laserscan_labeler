@@ -38,10 +38,12 @@ The output is in the form of a matlab/octave/scipy.io compatible mat file. To lo
 Entries:
 N=number of scans, C=number of returns per scan
 
-- range_max - float - the max range of the laser scan message
-- theta - float array[C] - the angular offset of each point
-- scans - float array[N,C]  - the input data - X in typical ML problems
-- classes - float array[N,C] - the labeled data - Y in typical ML problems
+key | type | description
+--- | --- | ---
+range_max | float | the max range of the laser scan message
+| theta | float array[C] | the angular offset of each point
+| scans | float array[N,C]  | the input data. X in typical ML problems
+| classes | float array[N,C] | the labeled data. Y in typical ML problems
 
 ## Caveats
 * The app automatically grabs the first laster scan topic it finds. To run it on other topics, filter out the topic you want using `rosbag filter`
