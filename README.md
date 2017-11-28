@@ -3,7 +3,8 @@ Tool for labeling laser scan data from ROS bags
 
 ## Prereqs
 On Ubuntu 16.04 (should work on other ubuntu versions, just replace 'kinetic' with 'indigo' etc.:
-* `sudo apt-get install python-qt4 python-rosbag ros-kinetic-std-msgs python-numpy python-scipy`
+* Install ROS Kinetic
+* `sudo apt-get install python-qt4 ros-kinetic-std-msgs python-numpy python-scipy`
 
 ## Usage
 To get started run:
