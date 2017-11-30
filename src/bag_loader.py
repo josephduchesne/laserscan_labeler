@@ -27,6 +27,8 @@ class BagLoader():
             if self.theta is None:
                 self.range_max = msg.range_max
                 self.theta = np.arange(msg.angle_min, msg.angle_max+msg.angle_increment, msg.angle_increment)
+                if len(self.theta)>len(msg.ranges):
+                    self.theta = self.theta[0:len(msg.ranges)]
             self.data.append(np.array(msg.ranges))
         bag.close()
         self.length = len(self.data)
